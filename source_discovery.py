@@ -1,0 +1,35 @@
+from subprocess import Popen, PIPE
+import re
+
+def get_source_dump(): 
+  process = Popen(["pacmd", "list-sources"], stdout=PIPE, stderr=PIPE)
+  (stdout, stderr) = process.communicate()
+  if stderr:
+    raise Exception(stderr)
+  return stdout
+
+def parse_source(text):
+  id_m = re.search("(.+?)\n", text)
+  if not id_m:
+    raise Exception("Couldn't parse ID")
+  src_id = int(id_m.group(1))
+
+  name_m = re.search("name: <(.+?)>", text)
+  if not name_m:
+    raise Exception("Couldn't parse name")
+  name = name_m.group(1)
+
+  buspath_m = re.search("device.bus_path = \"(.+?)\"", text)
+  if not buspath_m:
+    raise Exception("Couldn't parse bus path")
+  buspath = buspath_m.group(1)
+
+  return {"id": src_id, "name": name, "path": buspath}
+
+def get_sources():
+  stdout = get_source_dump().split("index:")
+  sources = dict()
+  for text in stdout[1:]:
+    source = parse_source(text)
+    sources[source['id']] = source
+  return sources
