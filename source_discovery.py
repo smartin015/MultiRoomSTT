@@ -31,5 +31,7 @@ def get_sources():
   sources = dict()
   for text in stdout[1:]:
     source = parse_source(text)
+    if not "input" in source['name']:
+      continue
     sources[source['id']] = source
   return sources
