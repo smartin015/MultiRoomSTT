@@ -9,13 +9,30 @@ import gst
 from source_discovery import get_sources
 from speech_parser import SpeechParser
 
-def print_cb(name, uttid, text):
+# Put the absolute path to the *.dic and *.lm language model files
+# here to supply a custom language model with higher translation accuracy.
+# http://cmusphinx.sourceforge.net/wiki/tutoriallm
+LM_PATH = None # *.lm goes here
+DICT_PATH = None  # *.dic goes here
+
+def partial_cb(name, uttid, text):
+  """ This is called whenever Sphinx is in the middle of 
+      transcribing an audio segment. Accuracy is much 
+      lower here - it's trying to figure out what is 
+      being said.
+  """
   print "(%s) %s: %s" % (uttid, name, text)
+
+def final_cb(name, uttid, text):
+  """ This is called when sphinx finishes transcription.
+      You should use this for speech commands, etc.
+  """
+  print "### (%s) %s: %s" % (uttid, name, text)
 
 if __name__ == "__main__":
   gobject.threads_init()
 
-  # Allow access by ID
+  # Get a list of audio sources known to pulseaudio and display them
   sources = get_sources()
   print "Discovered sources:"
   for src_id in sources:
@@ -28,7 +45,14 @@ if __name__ == "__main__":
   for (src_id, source) in sources.items():
     audiosrc = gst.element_factory_make("pulsesrc")
     audiosrc.set_property("device", source['id'])
-    source['parser'] = SpeechParser(str(source['id']), audiosrc, print_cb, print_cb)
+    source['parser'] = SpeechParser(
+                          str(source['id']), 
+                          audiosrc,
+                          partial_cb, 
+                          final_cb, 
+                          LM_PATH, 
+                          DICT_PATH
+                       )
 
   # This loops the program until Ctrl+C is pressed
   g_loop = threading.Thread(target=gobject.MainLoop().run)

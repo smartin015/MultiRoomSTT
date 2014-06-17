@@ -2,6 +2,9 @@ from subprocess import Popen, PIPE
 import re
 
 def get_source_dump(): 
+  """ Runs "pacmd list-sources" terminal command to get 
+      a full dump of all sources known to pulse.
+  """
   process = Popen(["pacmd", "list-sources"], stdout=PIPE, stderr=PIPE)
   (stdout, stderr) = process.communicate()
   if stderr:
@@ -9,6 +12,9 @@ def get_source_dump():
   return stdout
 
 def parse_source(text):
+  """ Takes a segment of the terminal dump and parses out 
+      source name, bus path, and id
+  """
   id_m = re.search("(.+?)\n", text)
   if not id_m:
     raise Exception("Couldn't parse ID")
@@ -27,6 +33,10 @@ def parse_source(text):
   return {"id": src_id, "name": name, "path": buspath}
 
 def get_sources():
+  """ Repeatedly calls parse_source and rejects 
+      non-input devices, before compiling them 
+      into an id-indexed dictionary.
+  """
   stdout = get_source_dump().split("index:")
   sources = dict()
   for text in stdout[1:]:
